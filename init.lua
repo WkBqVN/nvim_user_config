@@ -168,8 +168,76 @@ return {
       "fatih/vim-go"
     },
     {
-      "github/copilot.vim",
-      name = "copilot",
+      "nvim-neo-tree/neo-tree.nvim",
+      dependencies = { "MunifTanjim/nui.nvim" },
+      cmd = "Neotree",
+      init = function() vim.g.neo_tree_remove_legacy_commands = true end,
+      opts = {
+        window = {
+          position = "right",
+        },
+        filesystem = {
+          filtered_items = {
+            visible = true, -- This is what you want: If you set this to `true`, all "hide" just mean "dimmed out"
+            hide_dotfiles = false,
+            hide_gitignored = true,
+          },
+        }
+      },
+    },
+    {
+      "zbirenbaum/copilot.lua",
+      cmd = "Copilot",
+      build = ":Copilot auth",
+      opts = {
+        suggestion = { enabled = false },
+        panel = { enabled = false },
+      },
+      config = function()
+        require('copilot').setup {
+          anel = {
+            enabled = true,
+            auto_refresh = true,
+            keymap = {
+              jump_prev = "[[",
+              jump_next = "]]",
+              accept = "<CR>",
+              refresh = "gr",
+              open = "<M-CR>" --alt + enter
+            },
+            layout = {
+              position = "bottom", -- | top | left | right
+              ratio = 0.2
+            },
+          },
+          suggestion = {
+            enabled = true,
+            auto_trigger = true,
+            debounce = 75,
+            keymap = {
+              accept = "<M-l>", -- alt + l
+              accept_word = false,
+              accept_line = false,
+              next = "<M-]>",
+              prev = "<M-[>",
+              dismiss = "<C-]>",
+            },
+          },
+          filetypes = {
+            yaml = false,
+            markdown = false,
+            help = false,
+            gitcommit = false,
+            gitrebase = false,
+            hgcommit = false,
+            svn = false,
+            cvs = false,
+            ["."] = false,
+          },
+          copilot_node_command = 'node', -- Node.js version must be > 16.x
+          server_opts_overrides = {},
+        }
+      end,
     },
   },
 }
