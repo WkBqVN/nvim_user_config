@@ -1,5 +1,24 @@
+CMAIN = ""
+local f = io.popen("ls *.debug")
+if not f then
+        print("Failed to init debug files")
+        return 0
+    end
+for filename in f:lines() do if string.match(filename,"%.debug") then
+      CMAIN = string.sub(filename,0,-7) .. ".cpp"
+  end
+end
+f:close()
 return {
-  colorscheme = "onedark",
+  colorscheme = "tokyonight",
+  mappings = {
+    n= {
+      ["<C-t>"] = {"<cmd>ToggleTerm direction=horizontal<cr>", desc = "custom toggle terminal"},
+      ["<C-b>"] = {function() require("dap").toggle_breakpoint() end, desc = "custom toggle breakpoints"},
+      ["<C-a>"] = {function() require("aerial").toggle() end, desc = "custom toogle outline"},
+    },
+    t = {},
+  },
   plugins = {
     {
       "navarasu/onedark.nvim",
@@ -16,6 +35,50 @@ return {
             ["@comment"] = { fg = '$red' },
           },
         })
+      end,
+    },
+    {
+      "folke/tokyonight.nvim",
+      name="tokyonight",
+      config = function() require("tokyonight").setup({
+       -- your configuration comes here
+        -- or leave it empty to use the default settings
+        style = "storm", -- The theme comes in three styles, `storm`, `moon`, a darker variant `night` and `day`
+        light_style = "night", -- The theme is used when the background is set to light
+        transparent = true, -- Enable this to disable setting the background color
+        terminal_colors = true, -- Configure the colors used when opening a `:terminal` in [Neovim](https://github.com/neovim/neovim)
+        styles = {
+          -- Style to be applied to different syntax groups
+          -- Value is any valid attr-list value for `:help nvim_set_hl`
+          comments = { italic = true },
+          keywords = { italic = true },
+          functions = {},
+          variables = {},
+          -- Background styles. Can be "dark", "transparent" or "normal"
+          sidebars = "transparent", -- style for sidebars, see below
+          floats = "transparent", -- style for floating windows
+      }}) end,
+    },
+    {
+      "goolord/alpha-nvim",
+      opts = function(_, opts) -- override the options using lazy.nvim
+        opts.section.header.val = { -- change the header section value
+          [[                                   ]],
+          [[                                   ]],
+          [[                                   ]],
+          [[   ⣴⣶⣤⡤⠦⣤⣀⣤⠆     ⣈⣭⣿⣶⣿⣦⣼⣆          ]],
+          [[    ⠉⠻⢿⣿⠿⣿⣿⣶⣦⠤⠄⡠⢾⣿⣿⡿⠋⠉⠉⠻⣿⣿⡛⣦       ]],
+          [[          ⠈⢿⣿⣟⠦ ⣾⣿⣿⣷    ⠻⠿⢿⣿⣧⣄     ]],
+          [[           ⣸⣿⣿⢧ ⢻⠻⣿⣿⣷⣄⣀⠄⠢⣀⡀⠈⠙⠿⠄    ]],
+          [[          ⢠⣿⣿⣿⠈    ⣻⣿⣿⣿⣿⣿⣿⣿⣛⣳⣤⣀⣀   ]],
+          [[   ⢠⣧⣶⣥⡤⢄ ⣸⣿⣿⠘  ⢀⣴⣿⣿⡿⠛⣿⣿⣧⠈⢿⠿⠟⠛⠻⠿⠄  ]],
+          [[  ⣰⣿⣿⠛⠻⣿⣿⡦⢹⣿⣷   ⢊⣿⣿⡏  ⢸⣿⣿⡇ ⢀⣠⣄⣾⠄   ]],
+          [[ ⣠⣿⠿⠛ ⢀⣿⣿⣷⠘⢿⣿⣦⡀ ⢸⢿⣿⣿⣄ ⣸⣿⣿⡇⣪⣿⡿⠿⣿⣷⡄  ]],
+          [[ ⠙⠃   ⣼⣿⡟  ⠈⠻⣿⣿⣦⣌⡇⠻⣿⣿⣷⣿⣿⣿ ⣿⣿⡇ ⠛⠻⢷⣄ ]],
+          [[      ⢻⣿⣿⣄   ⠈⠻⣿⣿⣿⣷⣿⣿⣿⣿⣿⡟ ⠫⢿⣿⡆     ]],
+          [[       ⠻⣿⣿⣿⣿⣶⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⡟⢀⣀⣤⣾⡿⠃     ]],
+          [[                                   ]],
+        }
       end,
     },
     {
@@ -46,7 +109,7 @@ return {
     {
       "leoluz/nvim-dap-go",
       name = "dap-go",
-      config = function()
+      init = function()
         require("dap-go").setup()
       end,
     },
@@ -64,7 +127,6 @@ return {
     },
     {
       "mfussenegger/nvim-dap",
-      name = "dap",
       config = function()
         local dap = require("dap")
         local home = os.getenv('HOME')
@@ -86,6 +148,53 @@ return {
             end,
           },
         }
+        dap.adapters.cppdbg = {
+          id = 'cppdbg',
+          type = 'executable',
+          command = '/home/dragon/.local/share/nvim/mason/bin/OpenDebugAD7',
+        }
+        dap.configurations.cpp = {
+          {
+            name = "  Debug file (Recommendation)",
+            type = "cppdbg",
+            request = "launch",
+            program = function()
+              if CMAIN == "" then
+                CMAIN = vim.fn.input("Set Main: ")
+              end
+                vim.fn.system( string.format("clang++ --debug %s -o %s.debug",CMAIN,string.sub(CMAIN,0,-5)))
+                return string.format("%s/%s.debug",vim.fn.getcwd(),string.sub(CMAIN,0,-5))
+            end,
+            cwd = '${workspaceFolder}',
+            stopAtEntry = true,
+          },
+          {
+            name = "Make debug file (Recommendation)",
+            -- type = "cppdbg",
+            -- request = "launch",
+            program = function()
+              if CMAIN == "" then
+                CMAIN = vim.fn.input("Set Main: ")
+              end
+                vim.fn.system( string.format("clang++ --debug %s -o %s.debug",CMAIN,string.sub(CMAIN,0,-5)))
+                -- return string.format("%s/%s.debug",vim.fn.getcwd(),string.sub(CMAIN,0,-5))
+            end,
+            cwd = '${workspaceFolder}',
+            stopAtEntry = true,
+          },
+          {
+            name = 'Attach to gdbserver :1234',
+            type = 'cppdbg',
+            request = 'launch',
+            MIMode = 'gdb',
+            miDebuggerServerAddress = 'localhost:1234',
+            miDebuggerPath = '/usr/bin/gdb',
+            cwd = '${workspaceFolder}',
+            program = function()
+              return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+            end,
+          },
+        }
       end,
     },
     {
@@ -98,6 +207,8 @@ return {
       "rcarriga/nvim-dap-ui",
       name = "dapui",
       opts = { floating = { border = "rounded" } },
+      -- init = function() require("dapui").open()
+      -- end,
       config = function()
         local dap = require("dap")
         local dapui = require("dapui")
@@ -171,7 +282,9 @@ return {
       "nvim-neo-tree/neo-tree.nvim",
       dependencies = { "MunifTanjim/nui.nvim" },
       cmd = "Neotree",
-      init = function() vim.g.neo_tree_remove_legacy_commands = true end,
+      init = function() vim.g.neo_tree_remove_legacy_commands = true
+        require("neo-tree.sources.manager").show("filesystem")
+      end,
       opts = {
         window = {
           position = "right",
@@ -241,3 +354,4 @@ return {
     },
   },
 }
+
